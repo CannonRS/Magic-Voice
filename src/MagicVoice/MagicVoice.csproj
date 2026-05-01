@@ -1,0 +1,55 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\MagicVoice.Core\MagicVoice.Core.csproj" />
+    <ProjectReference Include="..\MagicVoice.Infrastructure\MagicVoice.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.7" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260416003" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\*.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\*.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\THIRD_PARTY_NOTICES.md" Link="THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <Platforms>x64</Platforms>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKBootstrapInitialize>true</WindowsAppSDKBootstrapInitialize>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\App.ico</ApplicationIcon>
+    <!-- Version/AssemblyVersion/FileVersion stammen aus Directory.Build.props ($(AppVersion)). -->
+
+    <!-- Framework-dependent Deployment: App nutzt System-.NET-10-Desktop-Runtime und
+         System-WindowsAppRuntime-1.8 (auf dem Zielrechner installieren, z. B. mit Install.ps1).
+         Self-Contained-Varianten haben sich
+         als instabil erwiesen (CoreMessagingXP-/Microsoft.UI.Xaml-Crashes durch
+         Versions-Mismatch zwischen App-eigenen DLLs und Systemkomponenten). -->
+    <SelfContained>false</SelfContained>
+
+    <Authors>Ronny Schulz</Authors>
+    <Company></Company>
+    <Product>Magic-Voice</Product>
+    <AssemblyTitle>Magic-Voice</AssemblyTitle>
+    <AssemblyName>MagicVoice</AssemblyName>
+    <RootNamespace>MagicVoice</RootNamespace>
+    <Copyright>Copyright 2026 Ronny Schulz</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <StartupObject>MagicVoice.Program</StartupObject>
+  </PropertyGroup>
+
+</Project>

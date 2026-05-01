@@ -1,0 +1,18 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>preview</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <Authors>Magic-S2T</Authors>
+    <Product>Magic-S2T</Product>
+
+    <!-- Zentrale Versionsnummer für App-Assemblies (AppVersion).
+         An einer Stelle ändern; Projekte erben über $(AppVersion).
+         Format: Major.Minor.Patch (3-stellig). -->
+    <AppVersion>0.4.0</AppVersion>
+    <Version>$(AppVersion)</Version>
+    <AssemblyVersion>$(AppVersion).0</AssemblyVersion>
+    <FileVersion>$(AppVersion).0</FileVersion>
+  </PropertyGroup>
+</Project>

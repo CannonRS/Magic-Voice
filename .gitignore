@@ -1,0 +1,19 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+*.suo
+TestResults/
+artifacts/release/
+artifacts/installer/
+artifacts/**/*.zip
+*.log
+
+# Zertifikate und Schlüssel gehören nicht ins öffentliche Repo.
+*.pfx
+*.snk
+
+# Lokale Nutzerdaten liegen unter %LOCALAPPDATA%\S2T-Assistent und gehören nicht ins Repo.
+settings.json
+logs/

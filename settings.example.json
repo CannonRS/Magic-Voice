@@ -1,0 +1,19 @@
+{
+  "sttProvider": "OpenAI",
+  "sttModel": "gpt-4o-mini-transcribe",
+  "inputLanguage": "de",
+  "outputLanguage": "same",
+  "audioInputDeviceId": "default",
+  "llmProvider": "OpenAI",
+  "llmModel": "gpt-4o",
+  "recordingMaxSeconds": 60,
+  "minimumRecordingMilliseconds": 300,
+  "processingTimeoutSeconds": 45,
+  "insertMethod": "SendInput",
+  "restoreClipboard": true,
+  "launchMinimizedToTray": true,
+  "minimizeToTray": true,
+  "playRecordingSounds": true,
+  "showNotifications": true,
+  "openSettingsOnConfigurationError": true
+}
