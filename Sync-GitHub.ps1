@@ -3,12 +3,14 @@
     Synchronisiert mit dem konfigurierten Git-Remote (z. B. GitHub).
 
 .DESCRIPTION
-    Remotes und Upstream kommen aus .git/config (wie bei normaler Git-Nutzung).
+    Fehlt "origin", wird es mit -OriginUrl angelegt (Vorgabe: öffentliches Repo
+    CannonRS/Magic-Voice). Danach wie gewohnt Pull/Push; Upstream setzt -u beim
+    ersten Push.
 
-    Standard: vor Pull/Push wird auf den Branch gewechselt, den -Branch angibt
-    (Vorgabe: main). Mit -UseCurrentBranch bleibt der gerade ausgecheckte Branch.
+    Standard: vor Pull/Push wird auf -Branch gewechselt (Vorgabe: main).
+    Mit -UseCurrentBranch bleibt der aktuelle Branch.
 
-    Die Skripte enthalten keine Zugangsdaten; sie sind nur Hilfen wie Build.ps1.
+    Nur die Repo-URL, keine Zugangsdaten.
 
 .PARAMETER Action
     Pull, Push oder PullPush (Standard: erst pull, dann push).
@@ -24,6 +26,9 @@
 
 .PARAMETER PushForceWithLease
     Bei Push: git push --force-with-lease (nur mit Absicht).
+
+.PARAMETER OriginUrl
+    URL für "git remote add origin", falls origin noch fehlt (HTTPS oder SSH).
 #>
 param(
     [ValidateSet("Pull", "Push", "PullPush")]
@@ -31,7 +36,8 @@ param(
     [string]$Branch = "main",
     [switch]$UseCurrentBranch,
     [switch]$Rebase,
-    [switch]$PushForceWithLease
+    [switch]$PushForceWithLease,
+    [string]$OriginUrl = "https://github.com/CannonRS/Magic-Voice.git"
 )
 
 $ErrorActionPreference = "Stop"
@@ -92,6 +98,22 @@ function Test-OriginExists {
     return ($LASTEXITCODE -eq 0)
 }
 
+function Ensure-Origin {
+    param([Parameter(Mandatory = $true)][string]$Url)
+
+    if (Test-OriginExists) {
+        $current = (& git -C $repoRoot remote get-url origin).Trim()
+        Write-Host "Remote origin: $current"
+        return
+    }
+
+    if ([string]::IsNullOrWhiteSpace($Url)) {
+        throw "Kein Remote 'origin' — bitte -OriginUrl setzen (oder einmalig manuell: git remote add origin ...)."
+    }
+
+    Invoke-RepoGit @("remote", "add", "origin", $Url.Trim())
+}
+
 function Show-Context {
     $current = Get-CurrentBranchName
     Write-Host "Aktueller Branch: $current | Repo: $repoRoot"
@@ -101,12 +123,7 @@ function Show-Context {
         Write-Host "Upstream: $upstream"
     }
     else {
-        if (Test-OriginExists) {
-            Write-Host "Kein Upstream — Pull/Push nutzen origin/$current (bis Tracking nach erstem Push gesetzt ist)."
-        }
-        else {
-            Write-Host "Kein Upstream und kein Remote 'origin' — einmalig: git remote add origin <Repo-URL>"
-        }
+        Write-Host "Kein Upstream — Pull/Push nutzen origin/$current (Tracking nach erstem Push -u)."
     }
 }
 
@@ -125,7 +142,7 @@ function Invoke-RepoPull {
     }
 
     if (-not (Test-OriginExists)) {
-        throw "Kein Upstream und kein Remote 'origin'. Zuerst: git remote add origin <Repo-URL>, dann erneut ausführen."
+        throw "Intern: origin fehlt nach Ensure-Origin."
     }
 
     $b = Get-CurrentBranchName
@@ -152,7 +169,7 @@ function Invoke-RepoPush {
     }
 
     if (-not (Test-OriginExists)) {
-        throw "Kein Upstream und kein Remote 'origin'. Zuerst: git remote add origin <Repo-URL>, dann erneut ausführen."
+        throw "Intern: origin fehlt nach Ensure-Origin."
     }
 
     $b = Get-CurrentBranchName
@@ -165,6 +182,7 @@ function Invoke-RepoPush {
 }
 
 Assert-GitRepo
+Ensure-Origin -Url $OriginUrl
 Ensure-TargetBranch
 Show-Context
 
