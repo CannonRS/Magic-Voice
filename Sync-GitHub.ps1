@@ -10,16 +10,23 @@
     Es wird immer auf -Branch gewechselt (Vorgabe: main); Pull/Push ohne Upstream
     nutzt ausdrücklich diesen Branch (origin/<Branch>).
 
-    Nur die Repo-URL, keine Zugangsdaten.
+    -AllowUnrelatedHistories: einmal nötig, wenn Remote z. B. nur LICENSE/README
+    aus der GitHub-Anlage hat und lokal ein anderer Root-Commit existiert.
 
 .PARAMETER Action
     Pull, Push oder PullPush (Standard: erst pull, dann push).
+
+.PARAMETER SkipPull
+    Nur bei PullPush: kein pull, nur push (kann fehlschlagen, wenn Remote voraus ist).
 
 .PARAMETER Branch
     Branch für git switch und für explizite pull/push origin/<Branch> (Vorgabe: main).
 
 .PARAMETER Rebase
-    Bei Pull: git pull --rebase.
+    Bei Pull: git pull --rebase (wird ignoriert, wenn -AllowUnrelatedHistories gesetzt).
+
+.PARAMETER AllowUnrelatedHistories
+    Bei Pull: --allow-unrelated-histories (Merge mit fremder Remote-Historie).
 
 .PARAMETER PushForceWithLease
     Bei Push: git push --force-with-lease (nur mit Absicht).
@@ -32,7 +39,9 @@ param(
     [string]$Action = "PullPush",
     [string]$Branch = "main",
     [switch]$Rebase,
+    [switch]$AllowUnrelatedHistories,
     [switch]$PushForceWithLease,
+    [switch]$SkipPull,
     [string]$OriginUrl = "https://github.com/CannonRS/Magic-Voice.git"
 )
 
@@ -124,7 +133,25 @@ function Show-Context {
 }
 
 function Invoke-RepoPull {
-    param([switch]$UseRebase)
+    param(
+        [switch]$UseRebase,
+        [switch]$AllowUnrelated
+    )
+
+    if ($AllowUnrelated) {
+        if ($UseRebase) {
+            Write-Host "Hinweis: -Rebase wird bei -AllowUnrelatedHistories ignoriert (Merge)."
+        }
+
+        if (Test-UpstreamConfigured) {
+            Invoke-RepoGit @("pull", "--allow-unrelated-histories")
+        }
+        else {
+            Invoke-RepoGit @("pull", "origin", $syncBranch, "--allow-unrelated-histories")
+        }
+
+        return
+    }
 
     if (Test-UpstreamConfigured) {
         if ($UseRebase) {
@@ -182,13 +209,16 @@ Show-Context
 
 switch ($Action) {
     "Pull" {
-        Invoke-RepoPull -UseRebase:$Rebase
+        Invoke-RepoPull -UseRebase:$Rebase -AllowUnrelated:$AllowUnrelatedHistories
     }
     "Push" {
         Invoke-RepoPush -ForceWithLease:$PushForceWithLease
     }
     "PullPush" {
-        Invoke-RepoPull -UseRebase:$Rebase
+        if (-not $SkipPull) {
+            Invoke-RepoPull -UseRebase:$Rebase -AllowUnrelated:$AllowUnrelatedHistories
+        }
+
         Invoke-RepoPush -ForceWithLease:$PushForceWithLease
     }
 }
