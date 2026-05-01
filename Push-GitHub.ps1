@@ -2,7 +2,11 @@
 .SYNOPSIS
     git push im Repo-Root (siehe Sync-GitHub.ps1).
 #>
-param([switch]$PushForceWithLease)
+param(
+    [string]$Branch = "main",
+    [switch]$UseCurrentBranch,
+    [switch]$PushForceWithLease
+)
 
 $ErrorActionPreference = "Stop"
-& (Join-Path $PSScriptRoot "Sync-GitHub.ps1") -Action Push -PushForceWithLease:$PushForceWithLease
+& (Join-Path $PSScriptRoot "Sync-GitHub.ps1") -Action Push -Branch $Branch -UseCurrentBranch:$UseCurrentBranch -PushForceWithLease:$PushForceWithLease
