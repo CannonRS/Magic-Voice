@@ -10,8 +10,9 @@
     Es wird immer auf -Branch gewechselt (Vorgabe: main); Pull/Push ohne Upstream
     nutzt ausdrücklich diesen Branch (origin/<Branch>).
 
-    -AllowUnrelatedHistories: einmal nötig, wenn Remote z. B. nur LICENSE/README
-    aus der GitHub-Anlage hat und lokal ein anderer Root-Commit existiert.
+    Ohne gemeinsamen Vorfahren mit dem Remote-Branch erkennt das Skript das und
+    nutzt automatisch --allow-unrelated-histories beim Pull (GitHub-README/LICENSE
+    + lokaler erster Commit). -AllowUnrelatedHistories erzwingt das zusätzlich.
 
 .PARAMETER Action
     Pull, Push oder PullPush (Standard: erst pull, dann push).
@@ -26,7 +27,7 @@
     Bei Pull: git pull --rebase (wird ignoriert, wenn -AllowUnrelatedHistories gesetzt).
 
 .PARAMETER AllowUnrelatedHistories
-    Bei Pull: --allow-unrelated-histories (Merge mit fremder Remote-Historie).
+    Bei Pull: erzwingt --allow-unrelated-histories (selten nötig; meist automatisch).
 
 .PARAMETER PushForceWithLease
     Bei Push: git push --force-with-lease (nur mit Absicht).
@@ -138,9 +139,33 @@ function Invoke-RepoPull {
         [switch]$AllowUnrelated
     )
 
-    if ($AllowUnrelated) {
+    $useUnrelatedMerge = [bool]$AllowUnrelated
+
+    if (-not $useUnrelatedMerge) {
+        $otherRef = $null
+        if (Test-UpstreamConfigured) {
+            $otherRef = (& git -C $repoRoot rev-parse --abbrev-ref '@{upstream}').Trim()
+        }
+        elseif (Test-OriginExists) {
+            $candidate = "origin/$syncBranch"
+            & git -C $repoRoot rev-parse --verify $candidate 2>$null | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+                $otherRef = $candidate
+            }
+        }
+
+        if ($null -ne $otherRef) {
+            & git -C $repoRoot merge-base HEAD $otherRef 2>$null | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+                $useUnrelatedMerge = $true
+                Write-Host "Hinweis: kein gemeinsamer Vorfahr mit $otherRef — Pull mit --allow-unrelated-histories."
+            }
+        }
+    }
+
+    if ($useUnrelatedMerge) {
         if ($UseRebase) {
-            Write-Host "Hinweis: -Rebase wird bei -AllowUnrelatedHistories ignoriert (Merge)."
+            Write-Host "Hinweis: -Rebase wird bei unrelated merge ignoriert (Merge)."
         }
 
         if (Test-UpstreamConfigured) {
