@@ -70,25 +70,97 @@ function Ensure-TargetBranch {
         throw "Branch ist leer — -Branch angeben oder -UseCurrentBranch nutzen."
     }
 
-    Write-Host "git switch $Branch"
     Invoke-RepoGit @("switch", $Branch)
 }
 
-function Show-Context {
-    $current = (& git -C $repoRoot branch --show-current 2>$null)
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($current)) {
+function Get-CurrentBranchName {
+    $name = (& git -C $repoRoot branch --show-current 2>$null)
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($name)) {
         throw "Kein Branch ermittelbar (detached HEAD?). Bitte einen Branch auschecken."
     }
 
-    $current = $current.Trim()
+    return $name.Trim()
+}
+
+function Test-UpstreamConfigured {
+    $null = & git -C $repoRoot rev-parse --abbrev-ref '@{upstream}' 2>$null
+    return ($LASTEXITCODE -eq 0)
+}
+
+function Test-OriginExists {
+    $null = & git -C $repoRoot remote get-url origin 2>$null
+    return ($LASTEXITCODE -eq 0)
+}
+
+function Show-Context {
+    $current = Get-CurrentBranchName
     Write-Host "Aktueller Branch: $current | Repo: $repoRoot"
 
-    $upstream = (& git -C $repoRoot rev-parse --abbrev-ref '@{upstream}' 2>$null)
-    if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($upstream)) {
+    if (Test-UpstreamConfigured) {
+        $upstream = (& git -C $repoRoot rev-parse --abbrev-ref '@{upstream}').Trim()
         Write-Host "Upstream: $upstream"
     }
     else {
-        Write-Host "Kein Upstream gesetzt — erster Push z. B.: git push -u origin $current"
+        if (Test-OriginExists) {
+            Write-Host "Kein Upstream — Pull/Push nutzen origin/$current (bis Tracking nach erstem Push gesetzt ist)."
+        }
+        else {
+            Write-Host "Kein Upstream und kein Remote 'origin' — einmalig: git remote add origin <Repo-URL>"
+        }
+    }
+}
+
+function Invoke-RepoPull {
+    param([switch]$UseRebase)
+
+    if (Test-UpstreamConfigured) {
+        if ($UseRebase) {
+            Invoke-RepoGit @("pull", "--rebase")
+        }
+        else {
+            Invoke-RepoGit @("pull")
+        }
+
+        return
+    }
+
+    if (-not (Test-OriginExists)) {
+        throw "Kein Upstream und kein Remote 'origin'. Zuerst: git remote add origin <Repo-URL>, dann erneut ausführen."
+    }
+
+    $b = Get-CurrentBranchName
+    if ($UseRebase) {
+        Invoke-RepoGit @("pull", "--rebase", "origin", $b)
+    }
+    else {
+        Invoke-RepoGit @("pull", "origin", $b)
+    }
+}
+
+function Invoke-RepoPush {
+    param([switch]$ForceWithLease)
+
+    if (Test-UpstreamConfigured) {
+        if ($ForceWithLease) {
+            Invoke-RepoGit @("push", "--force-with-lease")
+        }
+        else {
+            Invoke-RepoGit @("push")
+        }
+
+        return
+    }
+
+    if (-not (Test-OriginExists)) {
+        throw "Kein Upstream und kein Remote 'origin'. Zuerst: git remote add origin <Repo-URL>, dann erneut ausführen."
+    }
+
+    $b = Get-CurrentBranchName
+    if ($ForceWithLease) {
+        Invoke-RepoGit @("push", "--force-with-lease", "-u", "origin", $b)
+    }
+    else {
+        Invoke-RepoGit @("push", "-u", "origin", $b)
     }
 }
 
@@ -98,35 +170,14 @@ Show-Context
 
 switch ($Action) {
     "Pull" {
-        if ($Rebase) {
-            Invoke-RepoGit @("pull", "--rebase")
-        }
-        else {
-            Invoke-RepoGit @("pull")
-        }
+        Invoke-RepoPull -UseRebase:$Rebase
     }
     "Push" {
-        if ($PushForceWithLease) {
-            Invoke-RepoGit @("push", "--force-with-lease")
-        }
-        else {
-            Invoke-RepoGit @("push")
-        }
+        Invoke-RepoPush -ForceWithLease:$PushForceWithLease
     }
     "PullPush" {
-        if ($Rebase) {
-            Invoke-RepoGit @("pull", "--rebase")
-        }
-        else {
-            Invoke-RepoGit @("pull")
-        }
-
-        if ($PushForceWithLease) {
-            Invoke-RepoGit @("push", "--force-with-lease")
-        }
-        else {
-            Invoke-RepoGit @("push")
-        }
+        Invoke-RepoPull -UseRebase:$Rebase
+        Invoke-RepoPush -ForceWithLease:$PushForceWithLease
     }
 }
 
