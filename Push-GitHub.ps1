@@ -4,9 +4,8 @@
 #>
 param(
     [string]$Branch = "main",
-    [switch]$UseCurrentBranch,
     [switch]$PushForceWithLease
 )
 
 $ErrorActionPreference = "Stop"
-& (Join-Path $PSScriptRoot "Sync-GitHub.ps1") -Action Push -Branch $Branch -UseCurrentBranch:$UseCurrentBranch -PushForceWithLease:$PushForceWithLease
+& (Join-Path $PSScriptRoot "Sync-GitHub.ps1") -Action Push -Branch $Branch -PushForceWithLease:$PushForceWithLease

@@ -7,8 +7,8 @@
     CannonRS/Magic-Voice). Danach wie gewohnt Pull/Push; Upstream setzt -u beim
     ersten Push.
 
-    Standard: vor Pull/Push wird auf -Branch gewechselt (Vorgabe: main).
-    Mit -UseCurrentBranch bleibt der aktuelle Branch.
+    Es wird immer auf -Branch gewechselt (Vorgabe: main); Pull/Push ohne Upstream
+    nutzt ausdrücklich diesen Branch (origin/<Branch>).
 
     Nur die Repo-URL, keine Zugangsdaten.
 
@@ -16,10 +16,7 @@
     Pull, Push oder PullPush (Standard: erst pull, dann push).
 
 .PARAMETER Branch
-    Ziel-Branch für "git switch" (Vorgabe: main). Nur wirkungsvoll ohne -UseCurrentBranch.
-
-.PARAMETER UseCurrentBranch
-    Kein Branch-Wechsel — Pull/Push auf dem Branch, auf dem du schon bist.
+    Branch für git switch und für explizite pull/push origin/<Branch> (Vorgabe: main).
 
 .PARAMETER Rebase
     Bei Pull: git pull --rebase.
@@ -34,7 +31,6 @@ param(
     [ValidateSet("Pull", "Push", "PullPush")]
     [string]$Action = "PullPush",
     [string]$Branch = "main",
-    [switch]$UseCurrentBranch,
     [switch]$Rebase,
     [switch]$PushForceWithLease,
     [string]$OriginUrl = "https://github.com/CannonRS/Magic-Voice.git"
@@ -42,6 +38,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 $repoRoot = $PSScriptRoot
+
+if ([string]::IsNullOrWhiteSpace($Branch)) {
+    throw "Branch darf nicht leer sein (Vorgabe: main)."
+}
+
+$syncBranch = $Branch.Trim()
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     throw "git wurde nicht gefunden. Git for Windows installieren und die Sitzung neu starten."
@@ -66,19 +68,6 @@ function Assert-GitRepo {
     }
 }
 
-function Ensure-TargetBranch {
-    if ($UseCurrentBranch) {
-        Write-Host "Branch-Wechsel übersprungen (-UseCurrentBranch)."
-        return
-    }
-
-    if ([string]::IsNullOrWhiteSpace($Branch)) {
-        throw "Branch ist leer — -Branch angeben oder -UseCurrentBranch nutzen."
-    }
-
-    Invoke-RepoGit @("switch", $Branch)
-}
-
 function Get-CurrentBranchName {
     $name = (& git -C $repoRoot branch --show-current 2>$null)
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($name)) {
@@ -86,6 +75,14 @@ function Get-CurrentBranchName {
     }
 
     return $name.Trim()
+}
+
+function Ensure-TargetBranch {
+    Invoke-RepoGit @("switch", $syncBranch)
+    $current = Get-CurrentBranchName
+    if ($current -ne $syncBranch) {
+        throw "Erwartet Branch '$syncBranch', ausgecheckt ist '$current'."
+    }
 }
 
 function Test-UpstreamConfigured {
@@ -115,15 +112,14 @@ function Ensure-Origin {
 }
 
 function Show-Context {
-    $current = Get-CurrentBranchName
-    Write-Host "Aktueller Branch: $current | Repo: $repoRoot"
+    Write-Host "Synchronisations-Branch: $syncBranch | Repo: $repoRoot"
 
     if (Test-UpstreamConfigured) {
         $upstream = (& git -C $repoRoot rev-parse --abbrev-ref '@{upstream}').Trim()
         Write-Host "Upstream: $upstream"
     }
     else {
-        Write-Host "Kein Upstream — Pull/Push nutzen origin/$current (Tracking nach erstem Push -u)."
+        Write-Host "Kein Upstream — Pull/Push nutzen origin/$syncBranch (Tracking nach erstem Push -u)."
     }
 }
 
@@ -145,12 +141,11 @@ function Invoke-RepoPull {
         throw "Intern: origin fehlt nach Ensure-Origin."
     }
 
-    $b = Get-CurrentBranchName
     if ($UseRebase) {
-        Invoke-RepoGit @("pull", "--rebase", "origin", $b)
+        Invoke-RepoGit @("pull", "--rebase", "origin", $syncBranch)
     }
     else {
-        Invoke-RepoGit @("pull", "origin", $b)
+        Invoke-RepoGit @("pull", "origin", $syncBranch)
     }
 }
 
@@ -172,12 +167,11 @@ function Invoke-RepoPush {
         throw "Intern: origin fehlt nach Ensure-Origin."
     }
 
-    $b = Get-CurrentBranchName
     if ($ForceWithLease) {
-        Invoke-RepoGit @("push", "--force-with-lease", "-u", "origin", $b)
+        Invoke-RepoGit @("push", "--force-with-lease", "-u", "origin", $syncBranch)
     }
     else {
-        Invoke-RepoGit @("push", "-u", "origin", $b)
+        Invoke-RepoGit @("push", "-u", "origin", $syncBranch)
     }
 }
 

@@ -4,9 +4,8 @@
 #>
 param(
     [string]$Branch = "main",
-    [switch]$UseCurrentBranch,
     [switch]$Rebase
 )
 
 $ErrorActionPreference = "Stop"
-& (Join-Path $PSScriptRoot "Sync-GitHub.ps1") -Action Pull -Branch $Branch -UseCurrentBranch:$UseCurrentBranch -Rebase:$Rebase
+& (Join-Path $PSScriptRoot "Sync-GitHub.ps1") -Action Pull -Branch $Branch -Rebase:$Rebase
