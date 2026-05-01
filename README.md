@@ -2,6 +2,8 @@
 
 Magic-Voice ist eine Windows-Desktop-App für gesprochene Eingabe bei gedrückter Taste (Push-to-Talk). Audio wird lokal aufgenommen, in der Cloud transkribiert, per KI verarbeitet und anschließend in das aktuell aktive Eingabefeld eingefügt. Du legst dir beliebig viele Assistenten an, jeder mit eigenem Typ, Tastenkürzel, Anweisung, Intensität und Schreibstil.
 
+**Hinweis:** Die App und der zugehörige Quellcode wurden wesentlich mit KI-gestützter Entwicklung (z. B. Assistent in der IDE) erstellt und von Menschen geprüft und freigegeben.
+
 ![Magic-Voice — Überblick](Screenshot.png)
 
 ## Voraussetzungen
